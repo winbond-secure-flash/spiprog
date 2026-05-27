@@ -2,6 +2,7 @@
 #include <fstream>
 #include <cstring>
 #include <string>
+#include <vector>
 #include <iomanip>
 #include <algorithm>
 
@@ -10,6 +11,8 @@
 
 using namespace std;
 
+/// @brief Print command-line usage information and examples.
+/// @param progName The executable name (argv[0]).
 static void printUsage(const char* progName)
 {
     std::cout << "Usage: " << progName << " [global options] <command> [command options]\n"
@@ -55,6 +58,11 @@ static void printUsage(const char* progName)
               << "      Verify flash contents at offset 0 match firmware.bin.\n";
 }
 
+/// @brief Parse a numeric string as decimal or hexadecimal.
+///
+/// Accepts "0x" or "0X" prefix for hex values, otherwise parses as decimal.
+/// @param s The string to parse.
+/// @return The parsed 32-bit unsigned value.
 static uint32_t parseNumber(const std::string& s)
 {
     if (s.find("0x") == 0 || s.find("0X") == 0)
@@ -62,6 +70,10 @@ static uint32_t parseNumber(const std::string& s)
     return static_cast<uint32_t>(std::stoul(s, nullptr, 10));
 }
 
+/// @brief Print a progress indicator to stdout (overwrites current line).
+/// @param current Number of bytes processed so far.
+/// @param total Total number of bytes to process.
+/// @param label Operation label (e.g., "Reading", "Writing").
 static void printProgress(uint32_t current, uint32_t total, const std::string& label)
 {
     int percent = static_cast<int>((uint64_t)current * 100 / total);
@@ -70,6 +82,9 @@ static void printProgress(uint32_t current, uint32_t total, const std::string& l
     if (current == total) std::cout << "\n";
 }
 
+/// @brief Read and display the JEDEC ID of the connected flash device.
+/// @param flash Reference to the SpiNorFlash driver instance.
+/// @return 0 on success, 1 on failure.
 static int cmdId(SpiNorFlash& flash)
 {
     uint32_t id = 0;
@@ -88,6 +103,12 @@ static int cmdId(SpiNorFlash& flash)
     return 0;
 }
 
+/// @brief Read a region of flash and save it to a binary file.
+/// @param flash Reference to the SpiNorFlash driver instance.
+/// @param offset Start address in flash.
+/// @param length Number of bytes to read.
+/// @param filename Output file path.
+/// @return 0 on success, 1 on failure.
 static int cmdRead(SpiNorFlash& flash, uint32_t offset, uint32_t length, const std::string& filename)
 {
     std::ofstream outFile(filename, std::ios::binary);
@@ -118,6 +139,14 @@ static int cmdRead(SpiNorFlash& flash, uint32_t offset, uint32_t length, const s
     return 0;
 }
 
+/// @brief Verify flash contents against a reference binary file.
+///
+/// Reads the flash in chunks and compares byte-by-byte with the file.
+/// Reports the first mismatched offset on failure.
+/// @param flash Reference to the SpiNorFlash driver instance.
+/// @param offset Start address in flash to compare against.
+/// @param filename Reference file path to verify against.
+/// @return 0 if flash matches the file, 1 on mismatch or error.
 static int cmdVerify(SpiNorFlash& flash, uint32_t offset, const std::string& filename)
 {
     std::ifstream inFile(filename, std::ios::binary | std::ios::ate);
@@ -165,6 +194,15 @@ static int cmdVerify(SpiNorFlash& flash, uint32_t offset, const std::string& fil
     return 0;
 }
 
+/// @brief Erase a flash region and write a binary file to it.
+///
+/// Performs a full erase of the target region followed by sequential page
+/// programming. Optionally verifies the written data afterwards.
+/// @param flash Reference to the SpiNorFlash driver instance.
+/// @param offset Start address in flash to write to.
+/// @param filename Input file path containing data to program.
+/// @param verify If true, verify flash contents after writing.
+/// @return 0 on success, 1 on failure.
 static int cmdWrite(SpiNorFlash& flash, uint32_t offset, const std::string& filename, bool verify)
 {
     std::ifstream inFile(filename, std::ios::binary | std::ios::ate);
@@ -216,6 +254,16 @@ static int cmdWrite(SpiNorFlash& flash, uint32_t offset, const std::string& file
     return 0;
 }
 
+/// @brief Smart reflash: only erases and writes sectors that differ from the input file.
+///
+/// For each sector, compares flash contents with the source data. Sectors that
+/// already match are skipped entirely. Sectors requiring bit-clearing are erased
+/// before programming. Reports statistics on skipped and erased sectors.
+/// @param flash Reference to the SpiNorFlash driver instance.
+/// @param offset Start address in flash.
+/// @param filename Input file path containing data to program.
+/// @param verify If true, verify flash contents after reflashing.
+/// @return 0 on success, 1 on failure.
 static int cmdReflash(SpiNorFlash& flash, uint32_t offset, const std::string& filename, bool verify)
 {
     std::ifstream inFile(filename, std::ios::binary | std::ios::ate);
@@ -268,6 +316,11 @@ static int cmdReflash(SpiNorFlash& flash, uint32_t offset, const std::string& fi
     return 0;
 }
 
+/// @brief Erase a specified region of flash.
+/// @param flash Reference to the SpiNorFlash driver instance.
+/// @param offset Start address of the region to erase.
+/// @param length Number of bytes to erase (rounded up to sector boundary).
+/// @return 0 on success, 1 on failure.
 static int cmdErase(SpiNorFlash& flash, uint32_t offset, uint32_t length)
 {
     std::cout << "Erasing " << length << " bytes at offset 0x"
@@ -283,6 +336,14 @@ static int cmdErase(SpiNorFlash& flash, uint32_t offset, uint32_t length)
     return 0;
 }
 
+/// @brief Application entry point.
+///
+/// Parses global options and command arguments, initializes the platform SPI
+/// interface, detects the flash device, and dispatches to the appropriate
+/// command handler.
+/// @param argc Argument count.
+/// @param argv Argument vector.
+/// @return 0 on success, 1 on failure.
 int main(int argc, char* argv[])
 {
     if (argc < 2) {

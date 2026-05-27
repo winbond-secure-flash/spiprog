@@ -7,7 +7,7 @@ A cross-platform command-line tool for reading, writing, erasing, and reflashing
 - **Read/Write/Erase** — basic flash operations
 - **Reflash** — smart programming that reads flash first, skips unchanged pages, and only erases sectors where bit transitions require it (0→1)
 - **Verify** — read-back comparison with exact mismatch reporting
-- **4-byte address support** — can be set via CLI flag
+- **4-byte address format** — can be set via CLI flag
 - **Fast Read** — optional FAST_READ (0x0B) for higher throughput at supported clock speeds
 
 ## Architecture
