@@ -8,7 +8,8 @@ Unit tests for the SPI NOR flash driver using Google Test.
 - C++17 compiler (MSVC, GCC, or Clang)
 - Internet access (GoogleTest is fetched automatically via CMake FetchContent)
 
-## Build and Run (Simulated Flash)
+## Build and Run on Simulated Flash
+
 
 No hardware required. Uses an in-memory flash simulator.
 ```
@@ -18,19 +19,21 @@ cmake --build build
 cd build && ctest --output-on-failure
 ```
 
-## Build and Run (Real Flash Hardware)
+## Build and Run on Real Flash Hardware
 
 Runs tests against a physical SPI NOR flash device. Destructive tests use a safe region at offset `0xF00000` (last 1MB).
-
 > **⚠️ Warning:** This will erase and write to the flash chip. `TEST_OFFSET` is adjustable for your device via cmake option.
 
-Before building with `-DUSE_REAL_FLASH=ON`, implement your SPI driver in `platform_spi_real.cpp`.
+### FT4222H hardware
+
+To run tests against real flash via an FTDI FT4222H USB-SPI bridge:
 ```
-cd tests
-cmake -B build -G Ninja -DUSE_REAL_FLASH=ON
-cmake --build build
-cd build && ctest --output-on-failure
+    cmake -B build -DUSE_FTDI_4222H=ON [-DTEST_OFFSET=<your non-default value>]
+    cmake --build build
+    cd build && ctest --output-on-failure
 ```
+
+
 ### Run a specific test
 ```
 ./spiprog_tests --gtest_filter=SpiNorFlashTest.Write_SinglePage_Readback

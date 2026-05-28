@@ -73,11 +73,13 @@ public:
 
     /// @brief Construct with a platform-specific flash handle.
     /// @param userData Opaque handle passed to platform SPI functions.
-    SpiNorFlash(const void* userData) : m_userData(userData) {}
+    SpiNorFlash(void* userData) : m_userData(userData) {}
 
     /// @brief Set or update the platform flash handle.
     /// @param userData Opaque handle passed to platform SPI functions.
-    void setFlashHandle(const void* userData){m_userData = userData;}
+    void setFlashHandle(void* userData){m_userData = userData;}
+
+    void* getFlashHandle() { return m_userData; }
 
     /// @brief Read the JEDEC ID from the flash device.
     /// @param[out] jedecId The 3-byte JEDEC ID (manufacturer byte in bits [23:16]).
@@ -208,7 +210,7 @@ private:
     /// @return 3 or 4 (bytes), based on config and address range.
     uint32_t addrSizeFor(uint32_t address) const;
 
-    const void* m_userData = nullptr;
+    void* m_userData = nullptr;
     FlashInfo m_info;
     FlashConfig m_config;
 };

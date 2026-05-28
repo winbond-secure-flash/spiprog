@@ -139,19 +139,28 @@ int SpiNorFlash::writeEnable()
 
 int SpiNorFlash::read(uint32_t address, uint8_t* buffer, uint32_t length)
 {
-    uint8_t cmd[5];
-    uint32_t dummyCycles = 0;
+    const uint32_t MAX_READ_CHUNK = 4096;
+    uint32_t offset = 0;
 
-    if (m_config.useFastRead) {                          // ← used here
-        buildCmdAddr(cmd, FlashCmd::FAST_READ, FlashCmd::FAST_READ_4B, address);
-        dummyCycles = 8;
-    }
-    else {
-        buildCmdAddr(cmd, FlashCmd::READ, FlashCmd::READ_4B, address);
-        dummyCycles = 0;
-    }
+    while (offset < length) {
+        uint32_t chunkSize = std::min(MAX_READ_CHUNK, length - offset);
 
-    return spiTransaction(cmd, 1, addrSizeFor(address), 0, dummyCycles, buffer, length);
+        uint8_t cmd[5];
+        uint32_t dummyCycles = 0;
+
+        if (m_config.useFastRead) {
+            buildCmdAddr(cmd, FlashCmd::FAST_READ, FlashCmd::FAST_READ_4B, address + offset);
+            dummyCycles = 8;
+        } else {
+            buildCmdAddr(cmd, FlashCmd::READ, FlashCmd::READ_4B, address + offset);
+            dummyCycles = 0;
+        }
+
+        int ret = spiTransaction(cmd, 1, addrSizeFor(address + offset), 0, dummyCycles, buffer + offset, chunkSize);
+        if (ret != 0) return ret;
+        offset += chunkSize;
+    }
+    return 0;
 }
 
 int SpiNorFlash::writePage(uint32_t address, const uint8_t* buffer, uint32_t length)

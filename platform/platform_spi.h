@@ -34,7 +34,7 @@ void PLATFORM_FlashHandlePut(void* flashHandle);
 /// After transmitting the output stream and any dummy cycles, the device
 /// response is clocked into `dataIn`.
 ///
-/// @param userData       Opaque flash handle from PLATFORM_FlashHandleGet().
+/// @param flashHandle    Opaque flash handle from PLATFORM_FlashHandleGet().
 /// @param dataOutStream  Buffer containing command + address + output data.
 /// @param cmdSize        Number of command bytes (typically 1).
 /// @param addressSize    Number of address bytes (0, 3, or 4).
@@ -43,7 +43,7 @@ void PLATFORM_FlashHandlePut(void* flashHandle);
 /// @param[out] dataIn    Buffer to receive data from the device (may be nullptr if dataInSize is 0).
 /// @param dataInSize     Number of bytes to read from the device.
 /// @return 0 on success, non-zero on failure.
-int PLATFORM_WriteReadTransaction(const void*     userData,
+int PLATFORM_WriteReadTransaction(void*           flashHandle,
                                   const uint8_t*  dataOutStream,
                                   uint32_t        cmdSize,
                                   uint32_t        addressSize,

@@ -133,14 +133,14 @@ int FlashSimulator::transaction(const uint8_t* dataOut, uint32_t cmdSize, uint32
     return 0;
 }
 
-// Platform API — simulator
-int PLATFORM_WriteReadTransaction(const void* userData,
+// Platform API – simulator
+int PLATFORM_WriteReadTransaction(void* flashHandle,
                                   const uint8_t* dataOutStream,
                                   uint32_t cmdSize, uint32_t addressSize,
                                   uint32_t dataOutSize, uint32_t dummyCycles,
                                   uint8_t* dataIn, uint32_t dataInSize)
 {
-    (void)userData;
+    (void)flashHandle;
     return getFlashSimulator().transaction(dataOutStream, cmdSize, addressSize,
                                            dataOutSize, dummyCycles, dataIn, dataInSize);
 }

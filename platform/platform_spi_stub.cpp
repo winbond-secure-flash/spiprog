@@ -13,7 +13,7 @@
 #include "platform_spi.h"
 
 
-int PLATFORM_WriteReadTransaction(const void*     userData,
+int PLATFORM_WriteReadTransaction(void*           flashHandle,
                                   const uint8_t*  dataOutStream,
                                   uint32_t        cmdSize,
                                   uint32_t        addressSize,
@@ -24,7 +24,7 @@ int PLATFORM_WriteReadTransaction(const void*     userData,
 {
 #pragma message("WARNING: Building PLATFORM_WriteReadTransaction with stub - provide one for your platform ")
 
-    (void)userData;
+    (void)flashHandle;
     (void)dataOutStream; (void)cmdSize; (void)addressSize;
     (void)dataOutSize; (void)dummyCycles; (void)dataIn; (void)dataInSize;
     return -1;
