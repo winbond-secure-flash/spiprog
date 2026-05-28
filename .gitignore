@@ -1,3 +1,5 @@
 /.vs
 /build
 /wsl
+/tests/build
+/out
