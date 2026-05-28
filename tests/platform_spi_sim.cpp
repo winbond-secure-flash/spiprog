@@ -1,3 +1,15 @@
+/************************************************************************************************************
+* @internal
+* @remark     Winbond Electronics Corporation - Confidential
+* @copyright  Copyright (c) 2026 by Winbond Electronics Corporation . All rights reserved
+* @endinternal
+*
+* @file       platform_spi_sim.cpp
+* @brief      Simulated SPI NOR flash platform implementation for unit testing
+*
+* ### project spiprog
+*
+************************************************************************************************************/
 #include "platform_spi_sim.h"
 #include "platform_spi.h"
 #include "spi_nor_flash.h"

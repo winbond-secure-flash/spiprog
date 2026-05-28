@@ -1,4 +1,16 @@
-﻿#pragma once
+﻿/************************************************************************************************************
+* @internal
+* @remark     Winbond Electronics Corporation - Confidential
+* @copyright  Copyright (c) 2026 by Winbond Electronics Corporation . All rights reserved
+* @endinternal
+*
+* @file       spi_nor_flash.h
+* @brief      SPI NOR flash driver class declaration and flash command definitions
+*
+* ### project spiprog
+*
+************************************************************************************************************/
+#pragma once
 
 #include <cstdint>
 #include <vector>

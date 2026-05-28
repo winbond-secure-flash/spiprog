@@ -1,3 +1,15 @@
+/************************************************************************************************************
+* @internal
+* @remark     Winbond Electronics Corporation - Confidential
+* @copyright  Copyright (c) 2026 by Winbond Electronics Corporation . All rights reserved
+* @endinternal
+*
+* @file       platform_spi_sim.h
+* @brief      Simulated SPI NOR flash memory for unit testing
+*
+* ### project spiprog
+*
+************************************************************************************************************/
 #pragma once
 
 #include <cstdint>

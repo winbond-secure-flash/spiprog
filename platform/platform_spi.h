@@ -1,3 +1,15 @@
+/************************************************************************************************************
+* @internal
+* @remark     Winbond Electronics Corporation - Confidential
+* @copyright  Copyright (c) 2026 by Winbond Electronics Corporation . All rights reserved
+* @endinternal
+*
+* @file       platform_spi.h
+* @brief      Platform SPI transport layer interface declarations
+*
+* ### project spiprog
+*
+************************************************************************************************************/
 #pragma once
 
 #include <cstdint>

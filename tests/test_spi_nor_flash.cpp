@@ -1,4 +1,15 @@
-#include <gtest/gtest.h>
+/************************************************************************************************************
+* @internal
+* @remark     Winbond Electronics Corporation - Confidential
+* @copyright  Copyright (c) 2026 by Winbond Electronics Corporation . All rights reserved
+* @endinternal
+*
+* @file       test_spi_nor_flash.cpp
+* @brief      Unit tests for the SPI NOR flash driver
+*
+* ### project spiprog
+*
+************************************************************************************************************/
 #include <chrono>
 #include <iostream>
 #include <cstring>

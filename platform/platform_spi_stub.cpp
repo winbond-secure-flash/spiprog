@@ -1,3 +1,15 @@
+/************************************************************************************************************
+* @internal
+* @remark     Winbond Electronics Corporation - Confidential
+* @copyright  Copyright (c) 2026 by Winbond Electronics Corporation . All rights reserved
+* @endinternal
+*
+* @file       platform_spi_stub.cpp
+* @brief      Stub implementation of the platform SPI interface for build validation
+*
+* ### project spiprog
+*
+************************************************************************************************************/
 #include "platform_spi.h"
 
 

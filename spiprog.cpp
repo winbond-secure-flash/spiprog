@@ -1,4 +1,16 @@
-﻿#include <iostream>
+﻿/************************************************************************************************************
+* @internal
+* @remark     Winbond Electronics Corporation - Confidential
+* @copyright  Copyright (c) 2026 by Winbond Electronics Corporation . All rights reserved
+* @endinternal
+*
+* @file       spiprog.cpp
+* @brief      Command-line SPI NOR flash programmer application
+*
+* ### project spiprog
+*
+************************************************************************************************************/
+#include <iostream>
 #include <fstream>
 #include <cstring>
 #include <string>
