@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 from datetime import datetime
 
-EXCLUDE_DIRS = {".git", "tests", ".vs"}
+EXCLUDE_DIRS = {".git", "tests", ".vs", "build"}
 EXCLUDE_FILES = {".gitignore", ".gitmodules", "export_repo.py"}
 EXCLUDE_EXTENSIONS = {".zip"}
 

@@ -23,12 +23,16 @@
 
 using namespace std;
 
+static constexpr const char* SPIPROG_VERSION = "1.0.0";
+
 /// @brief Print command-line usage information and examples.
 /// @param progName The executable name (argv[0]).
 static void printUsage(const char* progName)
 {
-    std::cout << "Usage: " << progName << " [global options] <command> [command options]\n"
+    std::cout << "spiprog v" << SPIPROG_VERSION << " - SPI NOR Flash Programmer\n\n"
+              << "Usage: " << progName << " [global options] <command> [command options]\n"
               << "\nGlobal options:\n"
+              << "  --version                         Show version information\n"
               << "  --fast-read                       Use FAST_READ (0x0B) instead of READ (0x03)\n"
               << "  --4byte-mode                      Force 4-byte address mode\n"
               << "\nCommands:\n"
@@ -369,7 +373,10 @@ int main(int argc, char* argv[])
 
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
-        if (arg == "--fast-read") {
+        if (arg == "--version") {
+            std::cout << "spiprog v" << SPIPROG_VERSION << "\n";
+            return 0;
+        } else if (arg == "--fast-read") {
             config.useFastRead = true;
         } else if (arg == "--4byte-mode") {
             config.force4ByteAddr = true;
