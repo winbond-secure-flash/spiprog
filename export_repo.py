@@ -7,8 +7,8 @@ from pathlib import Path
 from datetime import datetime
 
 EXCLUDE_DIRS = {".git", "tests", ".vs", "build"}
-EXCLUDE_FILES = {".gitignore", ".gitmodules", "export_repo.py"}
-EXCLUDE_EXTENSIONS = {".zip"}
+EXCLUDE_FILES = {".gitignore", ".gitmodules"}
+EXCLUDE_EXTENSIONS = {".zip", ".py"}
 
 def should_exclude(path: Path) -> bool:
     parts = path.parts

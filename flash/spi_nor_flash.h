@@ -32,6 +32,9 @@ namespace FlashCmd {
     constexpr uint8_t READ_STATUS_3   = 0x15; // Winbond Status Register 3
     constexpr uint8_t FAST_READ       = 0x0B;
     constexpr uint8_t FAST_READ_4B    = 0x0C;
+
+    constexpr uint8_t READ_FR         = 0x70; // Reading Flag Register
+    constexpr uint8_t CLEAR_FR        = 0x50; // Clearing Flag Register
 }
 
 namespace FlashTimeout {
@@ -55,6 +58,8 @@ struct FlashInfo {
     uint32_t sectorSize = 4096;    ///< Sector size in bytes (minimum erase unit)
     uint32_t blockSize  = 65536;   ///< Block size in bytes (64KB erase unit)
     std::string name;              ///< Human-readable flash part name
+    bool addrMode4Byte  = false;   ///< true if flash is in 4-byte address mode (resolved from device)
+    bool addrModeResolved = false; ///< true if address mode was read from the device
 };
 
 /// @brief Runtime configuration for flash operations.
@@ -92,6 +97,20 @@ public:
     /// Also auto-configures 4-byte addressing if the device requires it.
     /// @return true if a supported flash device was detected, false otherwise.
     bool detect();
+
+    
+
+    /// @brief Check if the flash is operating in 4-byte address mode.
+    ///
+    /// Examines bit 0 of the flag register to determine the current address mode.
+    /// When set, the flash expects 4-byte addresses for read/write/erase commands.
+    /// @param flagRegister The flag register value (obtained via readByteFR()).
+    /// @return true if 4-byte address mode is active, false if 3-byte mode.
+    bool isAddressModeFourBytes(const uint8_t flagRegister)
+    {
+    #define FLAG_REG_AM_FOUR_BYTE_MASK 0x01 
+    return flagRegister & FLAG_REG_AM_FOUR_BYTE_MASK ? true : false;
+    }
 
     /// @brief Get the detected flash device information.
     /// @return Reference to the FlashInfo structure (valid after detect() succeeds).
@@ -173,6 +192,24 @@ private:
     /// @param[out] status The status register value.
     /// @return 0 on success, non-zero on failure.
     int readStatusRegister(uint8_t& status);
+
+    /// @brief Read the Flag Register from the flash device.
+    ///
+    /// Issues the READ_FR (0x70) command to retrieve the flag register byte.
+    /// The flag register provides status information such as address mode,
+    /// erase/program errors, and protection status.
+    ///
+    /// In multi-I/O SPI modes (dual/quad), the flash requires dummy cycles
+    /// between the command and data phase. In single-wire SPI mode, no dummy
+    /// cycles are needed. Since the driver does not control the physical line
+    /// configuration, the caller must specify the bus mode so the correct
+    /// number of dummy cycles is applied.
+    ///
+    /// @param[out] fr The flag register value read from flash.
+    /// @param isSpiSingle If true, no dummy cycles are inserted (single-wire SPI);
+    ///                    if false, dummy cycles are inserted for multi-I/O mode.
+    /// @return 0 on success, non-zero on SPI transaction failure.
+    int readByteFR(uint8_t& fr, bool isSpiSingle);
 
     /// @brief Program a single page (up to 256 bytes, must not cross page boundary).
     /// @param address Start address (must be within a single page).

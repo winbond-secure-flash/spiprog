@@ -86,6 +86,23 @@ int SpiNorFlash::readId(uint32_t& jedecId)
     return 0;
 }
 
+
+int SpiNorFlash::readByteFR(uint8_t& fr, bool isSpiSingle)
+{
+
+#define SPI_DC_READ_FR_SPI      0 
+#define SPI_DC_READ_FR_QPI_OPI  8
+
+    uint8_t     cmd = FlashCmd::READ_FR;
+    uint32_t    dummyCycles = isSpiSingle ? SPI_DC_READ_FR_SPI : SPI_DC_READ_FR_QPI_OPI;
+
+    int ret = spiTransaction(&cmd, 1, 0, 0, dummyCycles, &fr, 1);
+    if (ret != 0) return ret;
+    
+    return 0;
+}
+
+
 bool SpiNorFlash::detect()
 {
     uint32_t id = 0;
@@ -98,14 +115,20 @@ bool SpiNorFlash::detect()
     } else {
         m_info.totalSize = 16 * 1024 * 1024;
     }
-    m_info.name = "SPI NOR Flash";
 
     // Winbond manufacturer ID = 0xEF
-    // uint8_t manufacturer = (id >> 16) & 0xFF;
-    // if (manufacturer == 0xEF) {
-    //   
-    //}
+    uint8_t manufacturer = (id >> 16) & 0xFF;
+    if (manufacturer == 0xEF) {
+        // Resolve address mode from Flag Register
+        uint8_t fr = 0;
+        if (readByteFR(fr, true) == 0) {
+            m_info.addrMode4Byte = isAddressModeFourBytes(fr);
+            m_info.addrModeResolved = true;
+        }
+    }
 
+    // TODO: make resolution of q2 and q3 here    
+    m_info.name = "SPI NOR Flash";
     return true;
 }
 

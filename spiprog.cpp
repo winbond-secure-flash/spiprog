@@ -36,7 +36,7 @@ static void printUsage(const char* progName)
               << "  --fast-read                       Use FAST_READ (0x0B) instead of READ (0x03)\n"
               << "  --4byte-mode                      Force 4-byte address mode\n"
               << "\nCommands:\n"
-              << "  id                                 Read JEDEC ID\n"
+              << "  info                               Show tool and flash information\n"
               << "  read  <offset> <length> <file>     Read flash to file\n"
               << "  write <offset> <file> [--verify]   Write file to flash (erase+write, raw)\n"
               << "  erase <offset> <length>            Erase region\n"
@@ -48,8 +48,8 @@ static void printUsage(const char* progName)
               << "  On startup, the tool reads the JEDEC ID to identify the flash chip.\n"
               << "  The tool defaults to 3-byte mode. Use --4byte-mode if your flash requires it.\n"
               << "\nExamples:\n"
-              << "  " << progName << " id\n"
-              << "      Read and display the JEDEC ID of the flash chip.\n"
+              << "  " << progName << " info\n"
+              << "      Display tool configuration and flash device information.\n"
               << "\n"
               << "  " << progName << " read 0x0 0x100000 dump.bin\n"
               << "      Read 1MB from the start of flash into dump.bin.\n"
@@ -98,10 +98,10 @@ static void printProgress(uint32_t current, uint32_t total, const std::string& l
     if (current == total) std::cout << "\n";
 }
 
-/// @brief Read and display the JEDEC ID of the connected flash device.
+/// @brief Display tool configuration and flash device information.
 /// @param flash Reference to the SpiNorFlash driver instance.
 /// @return 0 on success, 1 on failure.
-static int cmdId(SpiNorFlash& flash)
+static int cmdInfo(SpiNorFlash& flash)
 {
     uint32_t id = 0;
     int ret = flash.readId(id);
@@ -109,13 +109,30 @@ static int cmdId(SpiNorFlash& flash)
         std::cerr << "Error: Failed to read JEDEC ID\n";
         return 1;
     }
-    std::cout << "JEDEC ID: 0x" << std::hex << std::setfill('0') << std::setw(6) << id << std::dec << "\n";
-    std::cout << "Manufacturer: 0x" << std::hex << std::setw(2) << ((id >> 16) & 0xFF) << "\n";
-    std::cout << "Device:       0x" << std::setw(4) << (id & 0xFFFF) << std::dec << "\n";
 
+    std::cout << "--- Tool Configuration ---\n";
+    std::cout << "Version:      spiprog v" << SPIPROG_VERSION << "\n";
+    std::cout << "Address mode: " << (flash.getConfig().force4ByteAddr ? "4-byte" : "3-byte") << "\n";
+    std::cout << "Read mode:    " << (flash.getConfig().useFastRead ? "FAST_READ (0x0B)" : "READ (0x03)") << "\n";
+
+    std::cout << "\n--- Flash Information ---\n";
     if (flash.detect()) {
+        std::cout << "Flash found:  " << flash.getInfo().name
+                  << " (" << flash.getInfo().totalSize / (1024 * 1024) << " MB)\n";
+    }
+    std::cout << "JEDEC ID:     0x" << std::hex << std::setfill('0') << std::setw(6) << id << std::dec << "\n";
+   
+    if (flash.getInfo().totalSize > 0) {
         std::cout << "Flash size:   " << flash.getInfo().totalSize / (1024 * 1024) << " MB\n";
     }
+
+    if (flash.getInfo().addrModeResolved) {
+        std::cout << "Address mode: " << (flash.getInfo().addrMode4Byte ? "4-byte" : "3-byte")
+                  << " (reported by flash)\n";
+    } else {
+        std::cout << "Address mode: unknown (flag register not available)\n";
+    }
+
     return 0;
 }
 
@@ -386,6 +403,16 @@ int main(int argc, char* argv[])
         }
     }
 
+    // Check for global options placed after the command (common mistake)
+    for (int i = argStart + 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "--fast-read" || arg == "--4byte-mode") {
+            std::cerr << "Error: Global option '" << arg << "' must appear before the command.\n"
+                      << "       Example: " << argv[0] << " " << arg << " " << argv[argStart] << " ...\n";
+            return 1;
+        }
+    }
+
     void* handle = PLATFORM_FlashHandleGet();
     if (!handle) {
         std::cerr << "Error: Failed to get flash handle\n";
@@ -404,20 +431,27 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    std::cout << "Flash detected: " << flash.getInfo().name
-              << " (" << flash.getInfo().totalSize / (1024 * 1024) << " MB)\n";
-    std::cout << "Address mode: " << (flash.getConfig().force4ByteAddr ? "4-byte" : "3-byte") << "\n";
-
-    if (config.force4ByteAddr && !flash.getConfig().force4ByteAddr) {
-        std::cerr << "Error: --4byte-mode requested but flash is in 3-byte address mode\n";
-        PLATFORM_FlashHandlePut(handle);
-        return 1;
-    }
-
     std::string command = argv[argStart];
 
-    if (command == "id") {
-        result = cmdId(flash);
+    // For data commands, verify tool address mode matches flash's actual address mode
+    if (command != "info") {
+        if (flash.getInfo().addrModeResolved) {
+            if (flash.getInfo().addrMode4Byte && !config.force4ByteAddr) {
+                std::cerr << "Error: Flash is in 4-byte address mode but tool is configured for 3-byte.\n"
+                          << "       Use --4byte-mode to operate in 4-byte address mode.\n";
+                PLATFORM_FlashHandlePut(handle);
+                return 1;
+            }
+            if (!flash.getInfo().addrMode4Byte && config.force4ByteAddr) {
+                std::cerr << "Error: Flash is in 3-byte address mode but --4byte-mode was specified.\n";
+                PLATFORM_FlashHandlePut(handle);
+                return 1;
+            }
+        }
+    }
+
+    if (command == "info") {
+        result = cmdInfo(flash);
     }
     else if (command == "read" && argc >= argStart + 4) {
         uint32_t offset = parseNumber(argv[argStart + 1]);
