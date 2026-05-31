@@ -35,6 +35,7 @@ static void printUsage(const char* progName)
               << "  --version                         Show version information\n"
               << "  --fast-read                       Use FAST_READ (0x0B) instead of READ (0x03)\n"
               << "  --4byte-mode                      Force 4-byte address mode\n"
+              << "  --read-chunk <size>               Set read transaction size (default: 4096)\n"
               << "\nCommands:\n"
               << "  info                               Show tool and flash information\n"
               << "  read  <offset> <length> <file>     Read flash to file\n"
@@ -56,6 +57,12 @@ static void printUsage(const char* progName)
               << "\n"
               << "  " << progName << " --fast-read read 0x0 0x2000000 full.bin\n"
               << "      Read entire 32MB flash using FAST_READ for higher throughput.\n"
+              << "\n"
+              << "  " << progName << " --read-chunk 0x10000 read 0x0 0x2000000 full.bin\n"
+              << "      Read entire 32MB flash using 64KB read transactions for less overhead.\n"
+              << "\n"
+              << "  " << progName << " --fast-read --read-chunk 0x10000 read 0x0 0x2000000 full.bin\n"
+              << "      Combine FAST_READ with 64KB chunks for maximum read throughput.\n"
               << "\n"
               << "  " << progName << " write 0x0 firmware.bin --verify\n"
               << "      Erase, write firmware.bin at offset 0, then verify.\n"
@@ -114,6 +121,7 @@ static int cmdInfo(SpiNorFlash& flash)
     std::cout << "Version:      spiprog v" << SPIPROG_VERSION << "\n";
     std::cout << "Address mode: " << (flash.getConfig().force4ByteAddr ? "4-byte" : "3-byte") << "\n";
     std::cout << "Read mode:    " << (flash.getConfig().useFastRead ? "FAST_READ (0x0B)" : "READ (0x03)") << "\n";
+    std::cout << "Read chunk:   " << flash.getConfig().readChunkSize << " bytes\n";
 
     std::cout << "\n--- Flash Information ---\n";
     if (flash.detect()) {
@@ -150,7 +158,7 @@ static int cmdRead(SpiNorFlash& flash, uint32_t offset, uint32_t length, const s
         return 1;
     }
 
-    constexpr uint32_t chunkSize = 4096;
+    const uint32_t chunkSize = flash.getConfig().readChunkSize;
     std::vector<uint8_t> buffer(chunkSize);
     uint32_t remaining = length;
     uint32_t addr = offset;
@@ -191,7 +199,7 @@ static int cmdVerify(SpiNorFlash& flash, uint32_t offset, const std::string& fil
     uint32_t fileSize = static_cast<uint32_t>(inFile.tellg());
     inFile.seekg(0);
 
-    constexpr uint32_t chunkSize = 4096;
+    const uint32_t chunkSize = flash.getConfig().readChunkSize;
     std::vector<uint8_t> fileBuf(chunkSize);
     std::vector<uint8_t> flashBuf(chunkSize);
     uint32_t remaining = fileSize;
@@ -397,6 +405,12 @@ int main(int argc, char* argv[])
             config.useFastRead = true;
         } else if (arg == "--4byte-mode") {
             config.force4ByteAddr = true;
+        } else if (arg == "--read-chunk" && i + 1 < argc) {
+            config.readChunkSize = parseNumber(argv[++i]);
+            if (config.readChunkSize == 0 || config.readChunkSize > 65536) {
+                std::cerr << "Error: --read-chunk must be between 1 and 65536 bytes\n";
+                return 1;
+            }
         } else {
             argStart = i;
             break;
@@ -406,7 +420,7 @@ int main(int argc, char* argv[])
     // Check for global options placed after the command (common mistake)
     for (int i = argStart + 1; i < argc; i++) {
         std::string arg = argv[i];
-        if (arg == "--fast-read" || arg == "--4byte-mode") {
+        if (arg == "--fast-read" || arg == "--4byte-mode" || arg == "--read-chunk") {
             std::cerr << "Error: Global option '" << arg << "' must appear before the command.\n"
                       << "       Example: " << argv[0] << " " << arg << " " << argv[argStart] << " ...\n";
             return 1;

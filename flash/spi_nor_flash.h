@@ -66,6 +66,7 @@ struct FlashInfo {
 struct FlashConfig {
     bool useFastRead = false;      ///< Use FAST_READ (0x0B) instead of READ (0x03)
     bool force4ByteAddr = false;   ///< Force 4-byte address mode for >16MB flash
+    uint32_t readChunkSize = 4096; ///< Maximum bytes per single read transaction
 };
 
 /// @brief Driver class for SPI NOR flash operations.
