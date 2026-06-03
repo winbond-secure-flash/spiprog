@@ -346,3 +346,54 @@ int SpiNorFlash::reflash(uint32_t address, const uint8_t* buffer, uint32_t lengt
 
     return 0;
 }
+
+int SpiNorFlash::readSfdp(std::vector<uint8_t>& sfdpData)
+{
+    // SFDP command: 0x5A + 3-byte address + 8 dummy cycles + data
+    // First, read the SFDP header (8 bytes) to get NPH (Number of Parameter Headers)
+    uint8_t cmd[4] = { FlashCmd::READ_SFDP, 0x00, 0x00, 0x00 };
+    uint8_t header[8] = {};
+
+    int ret = spiTransaction(cmd, 1, 3, 0, 8, header, 8);
+    if (ret != 0) return ret;
+
+    // Validate SFDP signature: 'S', 'F', 'D', 'P'
+    if (header[0] != 0x53 || header[1] != 0x46 || header[2] != 0x44 || header[3] != 0x50) {
+        return -1; // Not a valid SFDP signature
+    }
+
+    // header[6] = NPH (Number of Parameter Headers, 0-based)
+    uint8_t nph = header[6];
+    uint32_t numParamHeaders = static_cast<uint32_t>(nph) + 1;
+
+    // Each parameter header is 8 bytes, starting at offset 8
+    // Read all parameter headers to find the maximum extent of the SFDP data
+    uint32_t paramHeadersSize = numParamHeaders * 8;
+    std::vector<uint8_t> paramHeaders(paramHeadersSize);
+
+    uint8_t cmd2[4] = { FlashCmd::READ_SFDP, 0x00, 0x00, 0x08 };
+    ret = spiTransaction(cmd2, 1, 3, 0, 8, paramHeaders.data(), paramHeadersSize);
+    if (ret != 0) return ret;
+
+    // Find the maximum end address across all parameter tables
+    uint32_t maxEnd = 8 + paramHeadersSize; // at minimum, header + param headers
+    for (uint32_t i = 0; i < numParamHeaders; i++) {
+        uint8_t* ph = &paramHeaders[i * 8];
+        // ph[3] = length in DWORDs
+        uint32_t tableLenBytes = static_cast<uint32_t>(ph[3]) * 4;
+        // ph[4..6] = 24-bit table pointer (little-endian)
+        uint32_t tablePtr = ph[4] | (ph[5] << 8) | (ph[6] << 16);
+        uint32_t tableEnd = tablePtr + tableLenBytes;
+        if (tableEnd > maxEnd) {
+            maxEnd = tableEnd;
+        }
+    }
+
+    // Read the entire SFDP area
+    sfdpData.resize(maxEnd);
+    uint8_t cmd3[4] = { FlashCmd::READ_SFDP, 0x00, 0x00, 0x00 };
+    ret = spiTransaction(cmd3, 1, 3, 0, 8, sfdpData.data(), maxEnd);
+    if (ret != 0) return ret;
+
+    return 0;
+}

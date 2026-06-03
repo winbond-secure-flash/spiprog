@@ -44,6 +44,7 @@ static void printUsage(const char* progName)
               << "  erase_chip                         Erase entire chip\n"
               << "  reflash <offset> <file> [--verify]  Smart reflash (skip/erase only if needed)\n"
               << "  verify <offset> <file>             Verify flash against file\n"
+              << "  sfdp_dump <file>                   Dump SFDP table to binary file\n"
               << "\nOffset and length accept hex (0x...) or decimal.\n"
               << "\nFlash detection:\n"
               << "  On startup, the tool reads the JEDEC ID to identify the flash chip.\n"
@@ -377,6 +378,30 @@ static int cmdErase(SpiNorFlash& flash, uint32_t offset, uint32_t length)
     return 0;
 }
 
+/// @brief Read the SFDP table from flash and save it to a binary file.
+/// @param flash Reference to the SpiNorFlash driver instance.
+/// @param filename Output file path.
+/// @return 0 on success, 1 on failure.
+static int cmdSfdpDump(SpiNorFlash& flash, const std::string& filename)
+{
+    std::vector<uint8_t> sfdpData;
+    int ret = flash.readSfdp(sfdpData);
+    if (ret != 0) {
+        std::cerr << "Error: Failed to read SFDP table\n";
+        return 1;
+    }
+
+    std::ofstream outFile(filename, std::ios::binary);
+    if (!outFile) {
+        std::cerr << "Error: Cannot open file for writing: " << filename << "\n";
+        return 1;
+    }
+
+    outFile.write(reinterpret_cast<const char*>(sfdpData.data()), sfdpData.size());
+    std::cout << "SFDP table (" << sfdpData.size() << " bytes) saved to " << filename << "\n";
+    return 0;
+}
+
 /// @brief Application entry point.
 ///
 /// Parses global options and command arguments, initializes the platform SPI
@@ -502,6 +527,9 @@ int main(int argc, char* argv[])
     else if (command == "verify" && argc >= argStart + 3) {
         uint32_t offset = parseNumber(argv[argStart + 1]);
         result = cmdVerify(flash, offset, argv[argStart + 2]);
+    }
+    else if (command == "sfdp_dump" && argc >= argStart + 2) {
+        result = cmdSfdpDump(flash, argv[argStart + 1]);
     }
     else {
         printUsage(argv[0]);

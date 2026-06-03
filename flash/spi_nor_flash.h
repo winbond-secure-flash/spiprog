@@ -35,6 +35,8 @@ namespace FlashCmd {
 
     constexpr uint8_t READ_FR         = 0x70; // Reading Flag Register
     constexpr uint8_t CLEAR_FR        = 0x50; // Clearing Flag Register
+
+    constexpr uint8_t READ_SFDP       = 0x5A; // Read SFDP table
 }
 
 namespace FlashTimeout {
@@ -99,7 +101,14 @@ public:
     /// @return true if a supported flash device was detected, false otherwise.
     bool detect();
 
-    
+    /// @brief Read the SFDP table from flash.
+    ///
+    /// Reads the SFDP header to determine the full table size, then reads
+    /// the complete SFDP data. The SFDP command uses a 3-byte address and
+    /// 8 dummy clock cycles regardless of the current address mode.
+    /// @param[out] sfdpData Vector populated with the complete SFDP table contents.
+    /// @return 0 on success, non-zero on failure.
+    int readSfdp(std::vector<uint8_t>& sfdpData);
 
     /// @brief Check if the flash is operating in 4-byte address mode.
     ///
