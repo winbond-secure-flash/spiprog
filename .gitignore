@@ -3,3 +3,7 @@
 /wsl
 /tests/build
 /out
+*.zip
+*.py
+*.o
+*.su

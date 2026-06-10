@@ -367,7 +367,6 @@ int SpiNorFlash::readSfdp(std::vector<uint8_t>& sfdpData)
     uint32_t numParamHeaders = static_cast<uint32_t>(nph) + 1;
 
     // Each parameter header is 8 bytes, starting at offset 8
-    // Read all parameter headers to find the maximum extent of the SFDP data
     uint32_t paramHeadersSize = numParamHeaders * 8;
     std::vector<uint8_t> paramHeaders(paramHeadersSize);
 
@@ -379,9 +378,7 @@ int SpiNorFlash::readSfdp(std::vector<uint8_t>& sfdpData)
     uint32_t maxEnd = 8 + paramHeadersSize; // at minimum, header + param headers
     for (uint32_t i = 0; i < numParamHeaders; i++) {
         uint8_t* ph = &paramHeaders[i * 8];
-        // ph[3] = length in DWORDs
         uint32_t tableLenBytes = static_cast<uint32_t>(ph[3]) * 4;
-        // ph[4..6] = 24-bit table pointer (little-endian)
         uint32_t tablePtr = ph[4] | (ph[5] << 8) | (ph[6] << 16);
         uint32_t tableEnd = tablePtr + tableLenBytes;
         if (tableEnd > maxEnd) {
@@ -389,11 +386,23 @@ int SpiNorFlash::readSfdp(std::vector<uint8_t>& sfdpData)
         }
     }
 
-    // Read the entire SFDP area
+    // Read the entire SFDP area in chunks respecting readChunkSize
     sfdpData.resize(maxEnd);
-    uint8_t cmd3[4] = { FlashCmd::READ_SFDP, 0x00, 0x00, 0x00 };
-    ret = spiTransaction(cmd3, 1, 3, 0, 8, sfdpData.data(), maxEnd);
-    if (ret != 0) return ret;
+    const uint32_t chunkSize = m_config.readChunkSize;
+    uint32_t offset = 0;
+
+    while (offset < maxEnd) {
+        uint32_t toRead = std::min(chunkSize, maxEnd - offset);
+        uint8_t cmdChunk[4] = {
+            FlashCmd::READ_SFDP,
+            static_cast<uint8_t>((offset >> 16) & 0xFF),
+            static_cast<uint8_t>((offset >> 8) & 0xFF),
+            static_cast<uint8_t>(offset & 0xFF)
+        };
+        ret = spiTransaction(cmdChunk, 1, 3, 0, 8, sfdpData.data() + offset, toRead);
+        if (ret != 0) return ret;
+        offset += toRead;
+    }
 
     return 0;
 }
